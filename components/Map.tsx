@@ -33,68 +33,48 @@ const mapStyles: any[] = [
     { featureType: 'water', elementType: 'labels.text.stroke', stylers: [{ color: '#17263c' }] }
 ];
 
-const MissingApiKeyMessage: React.FC = () => (
-  <div className="absolute inset-0 bg-gray-900/90 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 z-10">
-    <div className="max-w-md bg-gray-800 p-6 rounded-lg shadow-2xl ring-1 ring-red-500/50">
-      <h2 className="text-2xl font-bold text-red-400 mb-3">Google Maps API Error</h2>
-      <p className="text-gray-300">
-        The map failed to load, likely due to an invalid API key.
-      </p>
-      <div className="mt-4 text-sm text-gray-300 bg-gray-900/70 px-3 py-2 rounded-md border border-gray-700">
-        Please open the <code className="font-mono text-amber-300">index.html</code> file and replace
-        <br />
-        <code className="font-mono text-amber-300 my-1 inline-block">'YOUR_GOOGLE_MAPS_API_KEY'</code>
-        <br />
-        with a valid key.
-      </div>
-      <a
-        href="https://developers.google.com/maps/documentation/javascript/get-api-key"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-6 inline-block text-indigo-400 hover:text-indigo-300 underline transition-colors"
-      >
-        Learn how to get an API Key &rarr;
-      </a>
-    </div>
-  </div>
-);
-
-
 const MapComponent: React.FC<MapProps> = ({ center, zoom, markerPosition }) => {
     const mapRef = useRef<HTMLDivElement>(null);
     const [map, setMap] = useState<any | null>(null);
+    const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('satellite');
     const markerRef = useRef<any | null>(null);
-    const [isApiLoaded, setIsApiLoaded] = useState(false);
 
-    // Check for Google Maps API script on component mount.
-    // If window.google is not available, the API key is likely invalid or missing.
+    // Initialize map and update its view
     useEffect(() => {
-        if (window.google && window.google.maps) {
-            setIsApiLoaded(true);
-        }
-    }, []);
-
-    // Initialize map once API is loaded
-    useEffect(() => {
-        if (isApiLoaded && mapRef.current && !map) {
-            const newMap = new window.google.maps.Map(mapRef.current, {
-                center,
-                zoom,
-                mapId: 'KNOW_THE_PAST_MAP_DARK',
-                disableDefaultUI: true,
-                styles: mapStyles,
-            });
-            setMap(newMap);
-        }
-    }, [isApiLoaded, map, center, zoom]);
-
-    // Update map view (pan/zoom) when props change
-    useEffect(() => {
-        if (map) {
-            map.panTo(center);
-            map.setZoom(zoom);
+        // Ensure the Google Maps API is loaded and the map container is available
+        if (mapRef.current && window.google && window.google.maps) {
+            if (!map) {
+                // Create a new map instance if it doesn't exist
+                const newMap = new window.google.maps.Map(mapRef.current, {
+                    center,
+                    zoom,
+                    mapId: 'KNOW_THE_PAST_MAP_DARK',
+                    disableDefaultUI: true,
+                    styles: mapStyles,
+                });
+                setMap(newMap);
+            } else {
+                // If map already exists, just update its center and zoom
+                map.panTo(center);
+                map.setZoom(zoom);
+            }
         }
     }, [map, center, zoom]);
+
+    // Update map type based on user selection
+    useEffect(() => {
+        if (map) {
+            if (mapType === 'satellite') {
+                map.setMapTypeId('satellite');
+                map.setOptions({ styles: null }); // Remove custom styles for satellite view
+                map.setTilt(45); // Enable 3D view
+            } else { // 'roadmap'
+                map.setMapTypeId('roadmap');
+                map.setOptions({ styles: mapStyles }); // Re-apply custom styles
+                map.setTilt(0); // Disable tilt for 2D view
+            }
+        }
+    }, [map, mapType]);
 
     // Update marker when position changes
     useEffect(() => {
@@ -113,10 +93,35 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, markerPosition }) => {
         }
     }, [map, markerPosition]);
 
+    const toggleMapType = () => {
+        setMapType(prev => (prev === 'roadmap' ? 'satellite' : 'roadmap'));
+    };
+
+    const CubeIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+        </svg>
+    );
+    
+    const MapIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 20.25l-4.5-2.25v-10.5L9 9.75l4.5 2.25L18 9.75v10.5l-4.5 2.25L9 20.25ZM9 4.5l4.5 2.25l4.5-2.25M9 4.5L4.5 6.75L9 9.75l4.5-2.25L9 4.5Z" />
+        </svg>
+    );
+
     return (
         <div className="relative w-full h-full">
-            {!isApiLoaded && <MissingApiKeyMessage />}
-            <div ref={mapRef} className={`w-full h-full transition-opacity duration-300 ${isApiLoaded ? 'opacity-100' : 'opacity-0'}`} />
+            <div ref={mapRef} className="w-full h-full" />
+            <div className="absolute bottom-6 left-6 z-10">
+                <button
+                    onClick={toggleMapType}
+                    className="w-12 h-12 flex items-center justify-center rounded-full text-white bg-gray-800/80 hover:bg-gray-700/90 backdrop-blur-sm transition-colors shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    aria-label={`Switch to ${mapType === 'roadmap' ? 'Satellite (3D)' : 'Terrain'} view`}
+                    title={`Switch to ${mapType === 'roadmap' ? 'Satellite (3D)' : 'Terrain'} view`}
+                >
+                    {mapType === 'roadmap' ? <CubeIcon /> : <MapIcon />}
+                </button>
+            </div>
         </div>
     );
 };

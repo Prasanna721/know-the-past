@@ -1,17 +1,17 @@
+export interface PlaceDetail {
+  label: string;
+  value: string;
+  icon: string; // e.g., 'calendar', 'globe', 'geology'
+}
 
 export interface HistoricalPlace {
   name: string;
   description: string;
-  historicalPeriod: string;
   latitude: number;
   longitude: number;
-  country: string;
-  significance: string;
   category: string;
-  visualImpact: string;
-  bestViewingTime: string;
-  historicalContext: string;
   zoom_level: number;
+  details: PlaceDetail[];
 }
 
 export interface Category {

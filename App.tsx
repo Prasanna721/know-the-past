@@ -6,13 +6,13 @@ import { InfoPanel } from './components/InfoPanel';
 import { fetchHistoricalPlace } from './services/geminiService';
 import type { HistoricalPlace } from './types';
 
-const INITIAL_CENTER = { lat: 20, lng: 0 };
-const INITIAL_ZOOM = 2;
+const INITIAL_CENTER = { lat: 40.7831, lng: -73.9712 }; // Centered on Manhattan
+const INITIAL_ZOOM = 11; // Zoomed in on Manhattan
 
 const LoadingSpinner: React.FC = () => (
   <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-50">
     <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-indigo-400"></div>
-    <p className="mt-4 text-lg font-semibold text-white">AI is discovering a new place for you...</p>
+    <p className="mt-4 text-lg font-semibold text-white">Discovering a place for you...</p>
   </div>
 );
 
