@@ -1,3 +1,4 @@
+
 export interface PlaceDetail {
   label: string;
   value: string;
@@ -12,6 +13,8 @@ export interface HistoricalPlace {
   category: string;
   zoom_level: number;
   details: PlaceDetail[];
+  locationType: 'point' | 'area';
+  placeId: string; // Google Place ID
 }
 
 export interface Category {

@@ -1,4 +1,6 @@
+
 import React, { useRef, useEffect, useState } from 'react';
+import type { HistoricalPlace } from '../types';
 
 // FIX: Add google to the window object to avoid TypeScript errors when the Google Maps script is loaded externally.
 declare global {
@@ -8,10 +10,11 @@ declare global {
 }
 
 interface MapProps {
-  center: { lat: number; lng: number };
-  zoom: number;
-  markerPosition: { lat: number; lng: number } | null;
+  place: HistoricalPlace | null;
 }
+
+const INITIAL_CENTER = { lat: 40.7831, lng: -73.9712 }; // Manhattan
+const INITIAL_ZOOM = 11;
 
 const mapStyles: any[] = [
     { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
@@ -33,33 +36,66 @@ const mapStyles: any[] = [
     { featureType: 'water', elementType: 'labels.text.stroke', stylers: [{ color: '#17263c' }] }
 ];
 
-const MapComponent: React.FC<MapProps> = ({ center, zoom, markerPosition }) => {
+const MapComponent: React.FC<MapProps> = ({ place }) => {
     const mapRef = useRef<HTMLDivElement>(null);
     const [map, setMap] = useState<any | null>(null);
     const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('satellite');
     const markerRef = useRef<any | null>(null);
+    const geocoderRef = useRef<any | null>(null);
 
-    // Initialize map and update its view
+    // Initialize map
     useEffect(() => {
-        // Ensure the Google Maps API is loaded and the map container is available
-        if (mapRef.current && window.google && window.google.maps) {
-            if (!map) {
-                // Create a new map instance if it doesn't exist
-                const newMap = new window.google.maps.Map(mapRef.current, {
-                    center,
-                    zoom,
-                    mapId: 'KNOW_THE_PAST_MAP_DARK',
-                    disableDefaultUI: true,
-                    styles: mapStyles,
-                });
-                setMap(newMap);
-            } else {
-                // If map already exists, just update its center and zoom
-                map.panTo(center);
-                map.setZoom(zoom);
-            }
+        if (mapRef.current && window.google && window.google.maps && !map) {
+            const newMap = new window.google.maps.Map(mapRef.current, {
+                center: INITIAL_CENTER,
+                zoom: INITIAL_ZOOM,
+                mapId: 'KNOW_THE_PAST_MAP_DARK',
+                disableDefaultUI: true,
+                styles: mapStyles,
+            });
+            setMap(newMap);
+            geocoderRef.current = new window.google.maps.Geocoder();
         }
-    }, [map, center, zoom]);
+    }, [map]);
+
+    // Update map view based on selected place
+    useEffect(() => {
+        if (!map || !window.google) return;
+
+        // Clear previous marker
+        if (markerRef.current) {
+            markerRef.current.map = null;
+        }
+
+        if (place) {
+            if (place.locationType === 'point') {
+                map.panTo({ lat: place.latitude, lng: place.longitude });
+                map.setZoom(place.zoom_level);
+                
+                markerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
+                    map,
+                    position: { lat: place.latitude, lng: place.longitude },
+                });
+            } else if (place.locationType === 'area' && geocoderRef.current) {
+                geocoderRef.current.geocode({ 'placeId': place.placeId }, (results: any[], status: string) => {
+                    if (status === 'OK' && results[0]?.geometry?.viewport) {
+                        map.fitBounds(results[0].geometry.viewport);
+                    } else {
+                        console.error('Geocode was not successful for the following reason: ' + status);
+                        // Fallback to point view if geocoding fails
+                        map.panTo({ lat: place.latitude, lng: place.longitude });
+                        map.setZoom(12); // Default zoom for failed area
+                    }
+                });
+            }
+        } else {
+            // Optional: Reset to initial view when place is deselected
+            // map.panTo(INITIAL_CENTER);
+            // map.setZoom(INITIAL_ZOOM);
+        }
+
+    }, [map, place]);
+
 
     // Update map type based on user selection
     useEffect(() => {
@@ -76,22 +112,6 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, markerPosition }) => {
         }
     }, [map, mapType]);
 
-    // Update marker when position changes
-    useEffect(() => {
-        if (map && window.google?.maps?.marker) {
-            // Clear previous marker
-            if (markerRef.current) {
-                markerRef.current.map = null;
-            }
-            // Add new marker if a position is provided
-            if (markerPosition) {
-                markerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
-                    map,
-                    position: markerPosition,
-                });
-            }
-        }
-    }, [map, markerPosition]);
 
     const toggleMapType = () => {
         setMapType(prev => (prev === 'roadmap' ? 'satellite' : 'roadmap'));

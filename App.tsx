@@ -6,9 +6,6 @@ import { InfoPanel } from './components/InfoPanel';
 import { fetchHistoricalPlace } from './services/geminiService';
 import type { HistoricalPlace } from './types';
 
-const INITIAL_CENTER = { lat: 40.7831, lng: -73.9712 }; // Centered on Manhattan
-const INITIAL_ZOOM = 11; // Zoomed in on Manhattan
-
 const LoadingSpinner: React.FC = () => (
   <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-50">
     <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-indigo-400"></div>
@@ -21,9 +18,6 @@ const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [selectedPlace, setSelectedPlace] = useState<HistoricalPlace | null>(null);
 
-    const [mapCenter, setMapCenter] = useState(INITIAL_CENTER);
-    const [mapZoom, setMapZoom] = useState(INITIAL_ZOOM);
-
     const handleCategorySelect = useCallback(async (category: string) => {
         setLoading(true);
         setError(null);
@@ -32,14 +26,9 @@ const App: React.FC = () => {
         try {
             const place = await fetchHistoricalPlace(category);
             setSelectedPlace(place);
-            setMapCenter({ lat: place.latitude, lng: place.longitude });
-            setMapZoom(place.zoom_level);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
             setError(`Failed to find a place. ${errorMessage}`);
-            // Reset map to initial state on error
-            setMapCenter(INITIAL_CENTER);
-            setMapZoom(INITIAL_ZOOM);
         } finally {
             setLoading(false);
         }
@@ -60,11 +49,7 @@ const App: React.FC = () => {
                 </div>
             )}
             
-            <Map 
-              center={mapCenter} 
-              zoom={mapZoom} 
-              markerPosition={selectedPlace ? { lat: selectedPlace.latitude, lng: selectedPlace.longitude } : null}
-            />
+            <Map place={selectedPlace} />
 
             <InfoPanel place={selectedPlace} onClose={handleClosePanel} />
             
