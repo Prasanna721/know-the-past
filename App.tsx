@@ -64,7 +64,7 @@ const App: React.FC = () => {
             <div className={`
                 fixed top-4 right-4 z-30
                 flex flex-col items-end gap-4
-                w-full max-w-xl 
+                w-full max-w-5xl 
                 transition-all duration-300 ease-in-out
                 ${selectedPlace ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
             >

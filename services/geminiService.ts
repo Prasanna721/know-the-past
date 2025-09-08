@@ -177,23 +177,28 @@ DETAILED IMAGE PROMPT GUIDELINES:
     }
 };
 
+
 export const generateImageFromPrompt = async (prompt: string): Promise<string> => {
     try {
+        const promptContent = [
+            { text: prompt }
+        ];
+
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image-preview',
-            contents: prompt,
-            config: {
-                responseModalities: [Modality.IMAGE, Modality.TEXT],
-            },
+            contents: promptContent,
         });
-
-        for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData && part.inlineData.data) {
-                return part.inlineData.data;
+        if (response.candidates && response.candidates.length > 0) {
+            const content = response.candidates[0].content;
+            for (const part of content.parts) {
+                if (part.inlineData && part.inlineData.data) {
+                    const base64ImageBytes: string = part.inlineData.data;
+                    return base64ImageBytes;
+                }
             }
         }
         
-        throw new Error("No image was generated.");
+        throw new Error("No image was generated from the prompt.");
     } catch (error) {
         console.error("Error generating image from Gemini API:", error);
         throw new Error("Failed to generate image.");
