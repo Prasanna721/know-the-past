@@ -1,11 +1,10 @@
-
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 import type { HistoricalPlace, Slide } from '../types';
 
 // This assumes the API_KEY is available as an environment variable.
-const apiKey = process.env.GEMINI_API_KEY;
+const apiKey = process.env.API_KEY;
 if (!apiKey) {
-    throw new Error("GEMINI_API_KEY environment variable not set.");
+    throw new Error("API_KEY environment variable not set.");
 }
 const ai = new GoogleGenAI({ apiKey });
 
@@ -180,19 +179,20 @@ DETAILED IMAGE PROMPT GUIDELINES:
 
 export const generateImageFromPrompt = async (prompt: string): Promise<string> => {
     try {
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: prompt,
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image-preview',
+            contents: prompt,
             config: {
-              numberOfImages: 1,
-              outputMimeType: 'image/jpeg',
-              aspectRatio: '16:9',
+                responseModalities: [Modality.IMAGE, Modality.TEXT],
             },
         });
 
-        if (response.generatedImages && response.generatedImages.length > 0) {
-            return response.generatedImages[0].image.imageBytes;
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData && part.inlineData.data) {
+                return part.inlineData.data;
+            }
         }
+        
         throw new Error("No image was generated.");
     } catch (error) {
         console.error("Error generating image from Gemini API:", error);

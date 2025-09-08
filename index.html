@@ -20,6 +20,14 @@
       .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #6b7280; /* gray-500 */
       }
+      /* Simple fade-in animation for the visual card */
+      @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.98); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.4s ease-out forwards;
+      }
     </style>
     <!-- 
       The Google Maps API Key has been inserted below. 
