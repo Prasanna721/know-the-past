@@ -3,6 +3,7 @@ import React, { useState, useCallback } from 'react';
 import { Map } from './components/Map';
 import { Dock } from './components/Dock';
 import { InfoPanel } from './components/InfoPanel';
+import { VisualContentCard } from './components/VisualContentCard';
 import { fetchHistoricalPlace } from './services/geminiService';
 import type { HistoricalPlace } from './types';
 
@@ -17,15 +18,18 @@ const App: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedPlace, setSelectedPlace] = useState<HistoricalPlace | null>(null);
+    const [activePanel, setActivePanel] = useState<'info' | 'visuals' | null>(null);
 
     const handleCategorySelect = useCallback(async (category: string) => {
         setLoading(true);
         setError(null);
         setSelectedPlace(null);
+        setActivePanel(null);
         
         try {
             const place = await fetchHistoricalPlace(category);
             setSelectedPlace(place);
+            setActivePanel('info'); // Default to showing info panel expanded
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
             setError(`Failed to find a place. ${errorMessage}`);
@@ -34,9 +38,14 @@ const App: React.FC = () => {
         }
     }, []);
     
-    const handleClosePanel = useCallback(() => {
+    const handleClosePanels = useCallback(() => {
         setSelectedPlace(null);
+        setActivePanel(null);
     }, []);
+
+    const handleTogglePanel = (panel: 'info' | 'visuals') => {
+        setActivePanel(current => current === panel ? null : panel);
+    };
 
     return (
         <div className="w-screen h-screen relative overflow-hidden">
@@ -51,7 +60,17 @@ const App: React.FC = () => {
             
             <Map place={selectedPlace} />
 
-            <InfoPanel place={selectedPlace} onClose={handleClosePanel} />
+            <InfoPanel 
+                place={selectedPlace} 
+                onClose={handleClosePanels} 
+                isExpanded={activePanel === 'info'}
+                onToggle={() => handleTogglePanel('info')}
+            />
+            <VisualContentCard
+                place={selectedPlace}
+                isExpanded={activePanel === 'visuals'}
+                onToggle={() => handleTogglePanel('visuals')}
+            />
             
             <Dock onCategorySelect={handleCategorySelect} isLoading={loading} />
         </div>
