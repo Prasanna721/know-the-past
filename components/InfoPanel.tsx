@@ -30,7 +30,6 @@ const TimeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewB
 const MinimizeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>;
 
 export const InfoPanel: React.FC<InfoPanelProps> = ({ place, onClose, isExpanded, onToggle }) => {
-    const isVisible = !!place;
     const isMinimized = !isExpanded;
 
     const iconMap: { [key: string]: JSX.Element } = {
@@ -52,8 +51,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ place, onClose, isExpanded
 
     return (
         <div 
-            className={`fixed top-4 right-4 z-40 w-full max-w-md rounded-xl bg-gray-900/70 backdrop-blur-md shadow-2xl transition-all duration-300 ease-in-out
-            ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
+            className={`w-full max-w-md rounded-xl bg-gray-900/70 backdrop-blur-md shadow-2xl transition-all duration-300 ease-in-out
             ${isMinimized ? 'cursor-pointer hover:bg-gray-900/80' : 'cursor-default'}`}
             onClick={handlePanelClick}
             aria-expanded={!isMinimized}
@@ -64,13 +62,13 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ place, onClose, isExpanded
                 {!isMinimized && (
                     <div className="absolute top-3 right-3 flex items-center gap-2 z-50">
                         <button 
-                            onClick={onToggle}
+                            onClick={(e) => { e.stopPropagation(); onToggle(); }}
                             className="p-1 text-gray-400 hover:text-white transition-colors" 
                             aria-label='Minimize panel'
                         >
                             <MinimizeIcon />
                         </button>
-                        <button onClick={onClose} className="p-1 text-gray-400 hover:text-white transition-colors" aria-label="Close panel">
+                        <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="p-1 text-gray-400 hover:text-white transition-colors" aria-label="Close panel">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     </div>
@@ -80,7 +78,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ place, onClose, isExpanded
                     <div className={`transition-all duration-300 
                         ${isMinimized ? 'p-6 flex items-center h-full' : 'p-6 pt-16'}`}
                     >
-                        <h2 className={`text-2xl font-bold text-white ${!isMinimized ? 'pr-24 mb-2' : ''}`} title={place.name}>
+                        <h2 className={`text-xl font-bold text-white ${!isMinimized ? 'pr-24 mb-2' : ''}`} title={place.name}>
                             {place.name}
                         </h2>
                         

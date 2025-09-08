@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import type { HistoricalPlace, Slide } from '../types';
 import { fetchVisualSlides, generateImageFromPrompt } from '../services/geminiService';
@@ -8,6 +7,10 @@ interface VisualContentCardProps {
     isExpanded: boolean;
     onToggle: () => void;
 }
+
+// In-memory cache for generated images.
+// It persists across re-renders because it's defined outside the component.
+const imageCache = new Map<string, string>();
 
 const LoadingCard: React.FC<{ message: string }> = ({ message }) => (
     <div className="flex items-center justify-center h-full p-6 text-gray-300">
@@ -24,12 +27,30 @@ const ImageWithLoader: React.FC<{ prompt: string }> = ({ prompt }) => {
     useEffect(() => {
         let isMounted = true;
         const generateImage = async () => {
-            setIsLoading(true);
             setError(null);
+
+            // 1. Check cache first
+            if (imageCache.has(prompt)) {
+                if (isMounted) {
+                    setImageUrl(imageCache.get(prompt)!);
+                    setIsLoading(false);
+                }
+                return;
+            }
+
+            // 2. If not in cache, show loader and generate
+            setIsLoading(true);
+            setImageUrl(null); // Clear previous image
+
             try {
                 const base64ImageBytes = await generateImageFromPrompt(prompt);
+                const generatedUrl = `data:image/jpeg;base64,${base64ImageBytes}`;
+                
+                // 3. Store in cache
+                imageCache.set(prompt, generatedUrl);
+
                 if (isMounted) {
-                    setImageUrl(`data:image/jpeg;base64,${base64ImageBytes}`);
+                    setImageUrl(generatedUrl);
                 }
             } catch (err) {
                 if (isMounted) {
@@ -41,7 +62,11 @@ const ImageWithLoader: React.FC<{ prompt: string }> = ({ prompt }) => {
                 }
             }
         };
-        generateImage();
+
+        if (prompt) {
+            generateImage();
+        }
+
         return () => { isMounted = false; };
     }, [prompt]);
 
@@ -49,14 +74,13 @@ const ImageWithLoader: React.FC<{ prompt: string }> = ({ prompt }) => {
         <div className="aspect-video bg-gray-800 rounded-lg w-full flex items-center justify-center overflow-hidden">
             {isLoading && <LoadingCard message="Generating" />}
             {error && <p className="text-red-400">{error}</p>}
-            {imageUrl && <img src={imageUrl} alt={prompt} className="w-full h-full object-cover" />}
+            {imageUrl && !isLoading && <img src={imageUrl} alt={prompt} className="w-full h-full object-cover" />}
         </div>
     );
 };
 
 
 export const VisualContentCard: React.FC<VisualContentCardProps> = ({ place, isExpanded, onToggle }) => {
-    const isVisible = !!place;
     const isMinimized = !isExpanded;
 
     const [slides, setSlides] = useState<Slide[]>([]);
@@ -69,6 +93,7 @@ export const VisualContentCard: React.FC<VisualContentCardProps> = ({ place, isE
         setError(null);
         setSlides([]);
         setCurrentSlide(0);
+        imageCache.clear(); // Clear cache for the new place
         try {
             const fetchedSlides = await fetchVisualSlides(currentPlace);
             setSlides(fetchedSlides);
@@ -96,13 +121,19 @@ export const VisualContentCard: React.FC<VisualContentCardProps> = ({ place, isE
         }
     };
     
-    const nextSlide = () => setCurrentSlide(s => (s + 1) % slides.length);
-    const prevSlide = () => setCurrentSlide(s => (s - 1 + slides.length) % slides.length);
+    const nextSlide = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setCurrentSlide(s => (s + 1) % slides.length);
+    };
+
+    const prevSlide = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setCurrentSlide(s => (s - 1 + slides.length) % slides.length);
+    };
 
     return (
         <div 
-            className={`fixed top-28 right-4 z-30 w-full rounded-xl bg-gray-900/70 backdrop-blur-md shadow-2xl transition-all duration-300 ease-in-out
-            ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
+            className={`w-full rounded-xl bg-gray-900/70 backdrop-blur-md shadow-2xl transition-all duration-300 ease-in-out
             ${isMinimized ? 'max-w-md cursor-pointer hover:bg-gray-900/80' : 'max-w-xl cursor-default'}`}
             onClick={handlePanelClick}
             aria-expanded={!isMinimized}
@@ -115,7 +146,7 @@ export const VisualContentCard: React.FC<VisualContentCardProps> = ({ place, isE
                         {isLoading ? (
                             <LoadingCard message="Retrieving" />
                         ) : (
-                             <h2 className="text-2xl font-bold text-white">Visuals</h2>
+                             <h2 className="text-xl font-medium text-white/80">Visuals</h2>
                         )}
                     </div>
                 )}

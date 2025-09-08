@@ -60,17 +60,26 @@ const App: React.FC = () => {
             
             <Map place={selectedPlace} />
 
-            <InfoPanel 
-                place={selectedPlace} 
-                onClose={handleClosePanels} 
-                isExpanded={activePanel === 'info'}
-                onToggle={() => handleTogglePanel('info')}
-            />
-            <VisualContentCard
-                place={selectedPlace}
-                isExpanded={activePanel === 'visuals'}
-                onToggle={() => handleTogglePanel('visuals')}
-            />
+            {/* Panel Container */}
+            <div className={`
+                fixed top-4 right-4 z-30
+                flex flex-col items-end gap-4
+                w-full max-w-xl 
+                transition-all duration-300 ease-in-out
+                ${selectedPlace ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
+            >
+                <InfoPanel 
+                    place={selectedPlace} 
+                    onClose={handleClosePanels} 
+                    isExpanded={activePanel === 'info'}
+                    onToggle={() => handleTogglePanel('info')}
+                />
+                <VisualContentCard
+                    place={selectedPlace}
+                    isExpanded={activePanel === 'visuals'}
+                    onToggle={() => handleTogglePanel('visuals')}
+                />
+            </div>
             
             <Dock onCategorySelect={handleCategorySelect} isLoading={loading} />
         </div>
